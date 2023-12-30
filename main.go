@@ -34,6 +34,7 @@ func filterDirectories(source []fs.DirEntry, test func(fs.DirEntry) bool) (ret [
 func compressApks(flavor string) bool {
 	directoryContents, err := os.ReadDir(apkDirectory)
 	if err != nil {
+		fmt.Println("Build directory not found. Please run flutter build apk first.")
 		panic(err)
 	}
 	directoryContents = filterDirectories(directoryContents, func(item fs.DirEntry) bool {
