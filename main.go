@@ -16,7 +16,12 @@ const apkDirectory string = "build/app/outputs/flutter-apk"
 
 // Run flutter build command
 func buildApk(flag string) {
-	cmd := exec.Command("flutter", "build", "apk", "--split-per-abi", "--flavor", flag, "--dart-define", "FLAVOR="+flag)
+	var cmd *exec.Cmd
+	if flag == "dev" {
+		cmd = exec.Command("flutter", "build", "apk", "--debug", "--flavor", flag, "--dart-define", "FLAVOR="+flag)
+	} else {
+		cmd = exec.Command("flutter", "build", "apk", "--split-per-abi", "--flavor", flag, "--dart-define", "FLAVOR="+flag)
+	}
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	cmd.Run()
@@ -90,11 +95,16 @@ func compressApks(flavor string) bool {
 	return true
 }
 
-func uploadFile() {
+func uploadFile(flavor string) {
+	var cmd *exec.Cmd
 	done := make(chan bool)
 	fmt.Println("Uploading file")
 	go showSpinner(done)
-	cmd := exec.Command("curl", "--upload-file", "./build-apk.zip", "https://free.keep.sh")
+	if flavor == "dev" {
+		cmd = exec.Command("curl", "--upload-file", "./build/app/outputs/flutter-apk/app-dev-debug.apk", "https://free.keep.sh")
+	} else {
+		cmd = exec.Command("curl", "--upload-file", "./build-apk.zip", "https://free.keep.sh")
+	}
 	cmd.Stdout = os.Stdout
 	err := cmd.Run()
 	done <- true
@@ -132,8 +142,11 @@ func main() {
 		return
 	}
 	buildApk(*flavorFlag)
-	compressionSuccess := compressApks(*flavorFlag)
-	if compressionSuccess {
-		uploadFile()
+	if *flavorFlag != "dev" {
+		compressionSuccess := compressApks(*flavorFlag)
+		if !compressionSuccess {
+			return
+		}
 	}
+	uploadFile(*flavorFlag)
 }
